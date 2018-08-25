@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>websocket-demo</title>
+</head>
+<body>
+    <div class="container">
+        <div class="message-container">
+            <ul id="messages" class="message-lists"></ul>
+        </div>
+
+        <form onsubmit="sendMessage(); return false;" id="chat">
+            <div class="form-group">
+                <input type="text" id="message" class="form-message-input" placeholder="type something...">
+            </div>
+            <button type="button" class="button" onClick="sendMessage();">Send Message</button>
+        </form>
+
+        <div class="nickname">
+            <span>nikename：</span>
+            <input id="name" type="text" />
+            <button class="button" onclick="changName();">submit</button></div>
+    </div>
+    <script>
+        var ws = new WebSocket("ws://localhost:3000");
+        var nickname = "";
+        ws.open = function(e) {
+            console.log('Connection to server opened');
+        }
+
+        function appendMessage(type, nickname, message) {
+            if(typeof message === undefined) return;
+            var messages = document.getElementById('messages');
+            var messageElement = document.createElement('li');
+            var str = '';
+            console.log(nickname);
+            if(type === 'notification') {
+                str += '<span class=\"label label-info\">系统消息：</span>';
+            } else if(type === 'nickname_update') {
+                str += '<span class=\"label label-warning">昵称变更：</span>';
+            } else {
+                str += '<span class=\"label label-message\">' + nickname + '：</span>';
+            }
+
+            var messageText = "<h2>" + str + '&nbsp;&nbsp;' + message + "</h2>";
+
+            messageElement.innerHTML = messageText;
+            messages.appendChild(messageElement);
+        }
+
+        //发送消息
+        function sendMessage() {
+            var messageField = document.getElementById('message');
+            if(ws.readyState === WebSocket.OPEN) {
+                ws.send(messageField.value);
+            }
+            messageField.value = '';
+            messageField.focus();
+        }
+        
+        ws.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            nickname = data.nickname;
+            appendMessage(data.type, data.nickname, data.message);
+        }
+
+        ws.onclose = function(e) {
+            ws.close();
+        }
+
+        //修改名称
+        function changName() {
+            nickname = document.getElementById("name").value;
+            if(ws.readyState === WebSocket.OPEN) {
+                ws.send("nickname_update:" + nickname);
+            }
+        }
+    </script>
+</body>
+</html>
